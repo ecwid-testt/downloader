@@ -1,5 +1,9 @@
 package ru.ecwid.tests.downloader;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,11 +13,12 @@ public class Task {
 
     private long fileSize;
     private String errorMessage;
+    private boolean ok;
 
-    public Task(String link, String fileName) {
+    public Task(String link, String... fileNameArray) {
         this.link = link;
         this.fileNameSet = new HashSet<>();
-        fileNameSet.add(fileName); //Не используется addFileName, чтобы не вызывать виртуальный метод из конструктора
+        Collections.addAll(fileNameSet, fileNameArray);
     }
 
     public void addFileName(String fileName) {
@@ -48,4 +53,33 @@ public class Task {
         return errorMessage != null;
     }
 
+    public boolean isOk() {
+        return ok;
+    }
+
+    public void ok() {
+        this.ok = true;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Task task = (Task) o;
+
+        return new EqualsBuilder()
+                .append(link, task.link)
+                .append(fileNameSet, task.fileNameSet)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+                .append(link)
+                .append(fileNameSet)
+                .toHashCode();
+    }
 }
