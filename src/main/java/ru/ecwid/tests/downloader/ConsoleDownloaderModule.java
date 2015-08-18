@@ -1,6 +1,7 @@
 package ru.ecwid.tests.downloader;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 
 import org.apache.commons.cli.CommandLine;
@@ -19,6 +20,7 @@ public class ConsoleDownloaderModule extends AbstractModule {
     public static final String TRAFFIC_LIMIT = "trafficLimit";
     public static final String TASKS_FILE = "tasksFile";
     public static final String OUTPUT_DIR = "outputDir";
+    public static final int K = 1024;
 
     private final Properties properties = new Properties();
 
@@ -27,6 +29,8 @@ public class ConsoleDownloaderModule extends AbstractModule {
     }
 
     private void parceCommandLine(String[] args) throws ParseException {
+        // Как ругаться в консольку при неверных входных параметрах- вопрос не очень понятный.
+        // Тут ругаемся не оень прилично, но вроде как понятно для пользователя
         Options options = new Options();
         options.addOption(new Option("n", "threads", true, "number of download threads"));
         options.addOption(new Option("l", "limin", true, "network traffic limit, bytes/kilobytes/megabytes (100/123k/23m)"));
@@ -39,8 +43,22 @@ public class ConsoleDownloaderModule extends AbstractModule {
                 printHelp(options);
                 throw new ParseException("Not another parameters");
             }
-            properties.put(THREADS_COUNT, commandLine.getOptionValue('n'));
-            properties.put(TRAFFIC_LIMIT, commandLine.getOptionValue('l'));
+            String threadsCountString = commandLine.getOptionValue('n');
+            try {
+                properties.put(THREADS_COUNT, Integer.parseInt(threadsCountString));
+            } catch (NumberFormatException e) {
+                System.out.println("Error in threads: " + threadsCountString + " not a number");
+                printHelp(options);
+                throw e;
+            }
+            final String limitString = commandLine.getOptionValue('l');
+            try {
+                properties.put(TRAFFIC_LIMIT, parseSize(limitString));
+            } catch (NumberFormatException e) {
+                System.out.println("Error in limit: " + limitString + " not a size");
+                printHelp(options);
+                throw e;
+            }
             properties.put(TASKS_FILE, commandLine.getOptionValue('f'));
             properties.put(OUTPUT_DIR, commandLine.getOptionValue('o'));
         } catch (ParseException e) {
@@ -49,8 +67,40 @@ public class ConsoleDownloaderModule extends AbstractModule {
         }
     }
 
+    private long parseSize(String limitString) {
+        limitString = limitString.toLowerCase();
+        long multiply = 1;
+        if (limitString.endsWith("g")) { //  Всякие 1M25K жёстко пресекаются
+            multiply = K * K * K;
+        } else if (limitString.endsWith("m")) {
+            multiply = K * K;
+        } else if (limitString.endsWith("k")) {
+            multiply = K;
+        }
+        if (multiply > 1) {
+            limitString = limitString.substring(0, limitString.length()-1);
+        }
+        return multiply * Long.parseLong(limitString);
+    }
+
     private void printHelp(Options options) {
         new HelpFormatter().printHelp("ConsoleDownloader", options);
+    }
+
+    public long downloadPartSize(@Named(TRAFFIC_LIMIT) long trafficLimit, @Named(THREADS_COUNT) int threadsCount) {
+        long partSize = trafficLimit / threadsCount;
+        if (partSize < 1) { // Мало ли идиоты...
+            return 1;
+        }
+        if (partSize < K) { // Не мельчим
+            return partSize;
+        }
+        // Возьмём с потолка оптимальный размер куска, чтобы не меньше 1К, но стараться не больше, чем 1/10 от лимита на один потом - чтобы ровнее ограничивать
+        partSize /= 10;
+        if (partSize < K) {
+            return K;
+        }
+        return partSize;
     }
 
     @Override
