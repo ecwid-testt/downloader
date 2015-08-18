@@ -18,20 +18,20 @@ import java.util.Queue;
  */
 public class TrafficLimiter {
 
-    private final long trafficLimit;
-    private final long minimalDownloadPartSize;
-    private final Queue<Pair<Long, Long>> trafficHistory;
+    private final int trafficLimit;
+    private final int minimalDownloadPartSize;
+    private final Queue<Pair<Long, Integer>> trafficHistory;
 
-    private long currentTraffic;
-    private Pair<Long, Long> oldestTrafficElem;
+    private int currentTraffic;
+    private Pair<Long, Integer> oldestTrafficElem;
 
     @Inject
-    public TrafficLimiter(@Named(ConsoleDownloaderModule.TRAFFIC_LIMIT) long trafficLimit,
-                          @Named(ConsoleDownloaderModule.MINIMAL_DOWNLOAD_PART_SIZE)  long minimalDownloadPartSize) {
+    public TrafficLimiter(@Named(ConsoleDownloaderModule.TRAFFIC_LIMIT) int trafficLimit,
+                          @Named(ConsoleDownloaderModule.MINIMAL_DOWNLOAD_PART_SIZE) int minimalDownloadPartSize) {
         this.trafficLimit = trafficLimit;
         this.minimalDownloadPartSize = minimalDownloadPartSize;
         this.currentTraffic = 0;
-        this.trafficHistory = new LinkedList<Pair<Long, Long>>();
+        this.trafficHistory = new LinkedList<>();
         this.oldestTrafficElem = null;
     }
 
@@ -39,7 +39,7 @@ public class TrafficLimiter {
      * Подождать возможности отхватить кусок partSize от лимита и отхватить сколько можно (больше нуля)
      * Может застрять в пределах секунды (если лимит исчерпан)
      */
-    public synchronized long waitAndGetLimit(long partSize) throws InterruptedException {
+    public synchronized int waitAndGetLimit(int partSize) throws InterruptedException {
         // Синхронизация, т.к. если лимит исчерпан- всё одно делать нечего- встаём в очередь.
         // А что справедливости нет- ну так её вообще нет
         final long now = System.currentTimeMillis();
@@ -61,7 +61,7 @@ public class TrafficLimiter {
             }
         }
         currentTraffic += partSize;
-        trafficHistory.add(new ImmutablePair<Long, Long>(System.currentTimeMillis(), partSize));
+        trafficHistory.add(new ImmutablePair<>(System.currentTimeMillis(), partSize));
         return partSize;
     }
 

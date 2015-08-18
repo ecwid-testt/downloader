@@ -72,9 +72,9 @@ public class ConsoleDownloaderModule extends AbstractModule {
         }
     }
 
-    private long parseSize(String limitString) {
+    private int parseSize(String limitString) {
         limitString = limitString.toLowerCase();
-        long multiply = 1;
+        int multiply = 1;
         if (limitString.endsWith("g")) { //  Всякие 1M25K жёстко пресекаются
             multiply = K * K * K;
         } else if (limitString.endsWith("m")) {
@@ -85,7 +85,7 @@ public class ConsoleDownloaderModule extends AbstractModule {
         if (multiply > 1) {
             limitString = limitString.substring(0, limitString.length()-1);
         }
-        return multiply * Long.parseLong(limitString);
+        return multiply * Integer.parseInt(limitString);
     }
 
     private void printHelp(Options options) {
@@ -95,8 +95,8 @@ public class ConsoleDownloaderModule extends AbstractModule {
     @Provides
     @Named(DOWNLOAD_PART_SIZE)
     @Singleton
-    public long downloadPartSize(@Named(TRAFFIC_LIMIT) long trafficLimit, @Named(THREADS_COUNT) int threadsCount) {
-        long partSize = trafficLimit / threadsCount;
+    public int downloadPartSize(@Named(TRAFFIC_LIMIT) int trafficLimit, @Named(THREADS_COUNT) int threadsCount) {
+        int partSize = trafficLimit / threadsCount;
         if (partSize < 1) { // Мало ли идиоты...
             return 1;
         }
@@ -114,7 +114,7 @@ public class ConsoleDownloaderModule extends AbstractModule {
     @Provides
     @Named(MINIMAL_DOWNLOAD_PART_SIZE)
     @Singleton
-    public long minimalDownloadPartSize(@Named(DOWNLOAD_PART_SIZE) long downloadPartSize) {
+    public int minimalDownloadPartSize(@Named(DOWNLOAD_PART_SIZE) int downloadPartSize) {
         return Math.min(1, downloadPartSize / 10);
     }
 
