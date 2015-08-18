@@ -19,14 +19,17 @@ import java.util.Queue;
 public class TrafficLimiter {
 
     private final long trafficLimit;
+    private final long minimalDownloadPartSize;
     private final Queue<Pair<Long, Long>> trafficHistory;
 
     private long currentTraffic;
     private Pair<Long, Long> oldestTrafficElem;
 
     @Inject
-    public TrafficLimiter(@Named(ConsoleDownloaderModule.TRAFFIC_LIMIT) long trafficLimit) {
+    public TrafficLimiter(@Named(ConsoleDownloaderModule.TRAFFIC_LIMIT) long trafficLimit,
+                          @Named(ConsoleDownloaderModule.MINIMAL_DOWNLOAD_PART_SIZE)  long minimalDownloadPartSize) {
         this.trafficLimit = trafficLimit;
+        this.minimalDownloadPartSize = minimalDownloadPartSize;
         this.currentTraffic = 0;
         this.trafficHistory = new LinkedList<Pair<Long, Long>>();
         this.oldestTrafficElem = null;
@@ -48,7 +51,7 @@ public class TrafficLimiter {
             while (oldestTrafficElem != null && oldestTrafficElem.getKey() < oldestTrafficTimestamp) {
                 removeOldestTrafficElem();
             }
-            if (trafficLimit <= currentTraffic) {
+            if (minimalDownloadPartSize > trafficLimit - currentTraffic) {
                 if (oldestTrafficElem != null) {
                     Thread.sleep(oldestTrafficElem.getKey() - oldestTrafficTimestamp);
                     removeOldestTrafficElem();

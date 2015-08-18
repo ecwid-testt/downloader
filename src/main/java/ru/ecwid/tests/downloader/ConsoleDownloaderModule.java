@@ -1,6 +1,8 @@
 package ru.ecwid.tests.downloader;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 
@@ -16,11 +18,14 @@ import java.util.Properties;
 
 public class ConsoleDownloaderModule extends AbstractModule {
 
+    public static final int K = 1024;
+
     public static final String THREADS_COUNT = "threadsCount";
     public static final String TRAFFIC_LIMIT = "trafficLimit";
     public static final String TASKS_FILE = "tasksFile";
     public static final String OUTPUT_DIR = "outputDir";
-    public static final int K = 1024;
+    public static final String DOWNLOAD_PART_SIZE = "downloadPartSize";
+    public static final String MINIMAL_DOWNLOAD_PART_SIZE = "minimalDownloadPartSize";
 
     private final Properties properties = new Properties();
 
@@ -87,6 +92,9 @@ public class ConsoleDownloaderModule extends AbstractModule {
         new HelpFormatter().printHelp("ConsoleDownloader", options);
     }
 
+    @Provides
+    @Named(DOWNLOAD_PART_SIZE)
+    @Singleton
     public long downloadPartSize(@Named(TRAFFIC_LIMIT) long trafficLimit, @Named(THREADS_COUNT) int threadsCount) {
         long partSize = trafficLimit / threadsCount;
         if (partSize < 1) { // Мало ли идиоты...
@@ -101,6 +109,13 @@ public class ConsoleDownloaderModule extends AbstractModule {
             return K;
         }
         return partSize;
+    }
+
+    @Provides
+    @Named(MINIMAL_DOWNLOAD_PART_SIZE)
+    @Singleton
+    public long minimalDownloadPartSize(@Named(DOWNLOAD_PART_SIZE) long downloadPartSize) {
+        return Math.min(1, downloadPartSize / 10);
     }
 
     @Override
